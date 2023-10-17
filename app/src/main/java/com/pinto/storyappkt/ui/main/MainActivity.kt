@@ -1,7 +1,8 @@
-package com.pinto.storyappkt
+package com.pinto.storyappkt.ui.main
 
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import com.pinto.storyappkt.R
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
