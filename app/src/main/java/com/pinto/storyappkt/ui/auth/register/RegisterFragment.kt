@@ -1,60 +1,97 @@
 package com.pinto.storyappkt.ui.auth.register
 
+import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
+import android.widget.Toast
+import androidx.core.view.isInvisible
+import androidx.core.view.isVisible
+import androidx.fragment.app.viewModels
+import androidx.navigation.Navigation
+import androidx.navigation.fragment.findNavController
 import com.pinto.storyappkt.R
+import com.pinto.storyappkt.data.models.register.RegisterResponse
+import com.pinto.storyappkt.data.remote.Result
+import com.pinto.storyappkt.databinding.FragmentRegisterBinding
+import com.pinto.storyappkt.utils.ViewModelFactory
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
 
-/**
- * A simple [Fragment] subclass.
- * Use the [RegisterFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class RegisterFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
+    private var _binding: FragmentRegisterBinding? = null
+    private val binding get() = _binding!!
+
+    private val registerViewModel: RegisterViewModel by viewModels {
+        ViewModelFactory(requireContext())
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_register, container, false)
+        _binding = FragmentRegisterBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment RegisterFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            RegisterFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        binding.tvSignupHaveAccount.setOnClickListener(Navigation.createNavigateOnClickListener(R.id.loginFragment))
+
+        binding.btSignUp.setOnClickListener { it->
+            val name = binding.edRegisterName.text.toString()
+            val email = binding.edRegisterEmail.text.toString()
+            val password = binding.edRegisterPassword.text.toString()
+
+            val inputService =
+                activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            inputService.hideSoftInputFromWindow(it.windowToken, 0)
+
+            registerViewModel.register(name ,email, password).observe(requireActivity()) { it ->
+                if(it != null) {
+                    when(it){
+                        is Result.Loading ->{
+                            showLoading(true)
+                        }
+                        is Result.Success ->{
+                            showLoading(false)
+                            processRegister(it.data)
+                        }
+                        is Result.Error ->{
+                            showLoading(false)
+                            Toast.makeText(requireContext(), it.error, Toast.LENGTH_LONG).show()
+                        }
+                    }
                 }
             }
+        }
     }
+
+    private fun processRegister(data: RegisterResponse) {
+        if(data.error){
+            Toast.makeText(requireContext(), "Gagal register new user", Toast.LENGTH_LONG).show()
+        }else{
+            Toast.makeText(requireContext(),"Register new user berhasil, Silahkan login!", Toast.LENGTH_LONG).show()
+            findNavController().navigate(RegisterFragmentDirections.actionRegisterFragmentToLoginFragment(isFromRegister = true))
+        }
+    }
+
+    private fun showLoading(state: Boolean) {
+        binding.pbCreateRegister.isVisible = state
+        binding.edRegisterEmail.isInvisible = state
+        binding.edRegisterName.isInvisible = state
+        binding.edRegisterPassword.isInvisible = state
+        binding.textView2.isInvisible = state
+        binding.tvSignupHaveAccount.isInvisible = state
+        binding.btSignUp.isInvisible = state
+    }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
 }

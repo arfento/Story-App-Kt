@@ -1,60 +1,119 @@
 package com.pinto.storyappkt.ui.auth.login
 
+import android.content.Context
 import android.os.Bundle
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
+import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
+import androidx.core.view.isInvisible
+import androidx.core.view.isVisible
+import androidx.fragment.app.viewModels
+import androidx.navigation.Navigation
+import androidx.navigation.fragment.findNavController
 import com.pinto.storyappkt.R
+import com.pinto.storyappkt.data.models.login.LoginResponse
+import com.pinto.storyappkt.data.remote.Result
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
+import com.pinto.storyappkt.databinding.FragmentLoginBinding
+import com.pinto.storyappkt.utils.Preference
+import com.pinto.storyappkt.utils.ViewModelFactory
 
-/**
- * A simple [Fragment] subclass.
- * Use the [LoginFragment.newInstance] factory method to
- * create an instance of this fragment.
- */
 class LoginFragment : Fragment() {
-    // TODO: Rename and change types of parameters
-    private var param1: String? = null
-    private var param2: String? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        arguments?.let {
-            param1 = it.getString(ARG_PARAM1)
-            param2 = it.getString(ARG_PARAM2)
-        }
+    private var _binding: FragmentLoginBinding? = null
+    private val binding get() = _binding!!
+
+    private val loginViewModel: LoginViewModel by viewModels {
+        ViewModelFactory(requireContext())
     }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View? {
-        // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_login, container, false)
+        savedInstanceState: Bundle?
+    ): View {
+        _binding = FragmentLoginBinding.inflate(inflater, container, false)
+        return binding.root
     }
 
-    companion object {
-        /**
-         * Use this factory method to create a new instance of
-         * this fragment using the provided parameters.
-         *
-         * @param param1 Parameter 1.
-         * @param param2 Parameter 2.
-         * @return A new instance of fragment LoginFragment.
-         */
-        // TODO: Rename and change types and number of parameters
-        @JvmStatic
-        fun newInstance(param1: String, param2: String) =
-            LoginFragment().apply {
-                arguments = Bundle().apply {
-                    putString(ARG_PARAM1, param1)
-                    putString(ARG_PARAM2, param2)
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        binding.tvLoginDontHaveAccount.setOnClickListener(
+            Navigation.createNavigateOnClickListener(R.id.registerFragment)
+        )
+
+        binding.btLogin.setOnClickListener {
+            val email = binding.edLoginEmail.text.toString()
+            val password = binding.edLoginPassword.text.toString()
+
+            val inputService =
+                activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            inputService.hideSoftInputFromWindow(it.windowToken, 0)
+
+            loginViewModel.login(email, password).observe(requireActivity()) { result ->
+              if(result != null) {
+                  print("login result : ${result.toString()}")
+                  when(result){
+                      is Result.Loading ->{
+                          showLoading(true)
+                      }
+                      is Result.Success ->{
+                          processLogin(result.data)
+                          showLoading(false)
+                      }
+                      is Result.Error ->{
+                          showLoading(false)
+                          Toast.makeText(requireContext(), result.error, Toast.LENGTH_LONG).show()
+                      }
+                  }
+              }
+            }
+        }
+
+        val isFormRegister : Boolean? = arguments?.getBoolean("is_from_register")
+        if (isFormRegister != null && isFormRegister){
+            onbackPressed()
+        }
+
+    }
+
+    private fun onbackPressed() {
+        activity?.onBackPressedDispatcher?.addCallback(
+            viewLifecycleOwner, object :OnBackPressedCallback(true){
+                override fun handleOnBackPressed() {
+                    requireActivity().finish()
                 }
             }
+        )
     }
+
+    private fun processLogin(data: LoginResponse) {
+        if(data.error){
+            Toast.makeText(requireContext(), data.message, Toast.LENGTH_LONG).show()
+        }else{
+            Preference.saveToken(data.loginResult.token, requireContext())
+            findNavController().navigate(R.id.action_loginFragment_to_mainActivity)
+            requireActivity().finish()
+        }
+    }
+
+    private fun showLoading(state: Boolean) {
+        binding.pbLogin.isVisible = state
+        binding.edLoginEmail.isInvisible = state
+        binding.edLoginPassword.isInvisible = state
+        binding.btLogin.isInvisible = state
+        binding.textView6.isInvisible = state
+        binding.tvLoginDontHaveAccount.isInvisible = state
+    }
+
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        _binding = null
+    }
+
 }

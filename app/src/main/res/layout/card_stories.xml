@@ -67,7 +67,7 @@
                 android:ellipsize="end"
                 android:maxLines="3"
                 android:text="@{story.description}"
-                android:transitionName="@{@string/storyName(String.valueOf(story.id))}"
+                android:transitionName="@{@string/storyDescription(String.valueOf(story.id))}"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintHorizontal_bias="0.5"
