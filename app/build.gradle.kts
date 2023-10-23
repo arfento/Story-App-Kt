@@ -44,7 +44,10 @@ android {
         viewBinding = true
     }
     dataBinding {
-        isEnabled = true
+        enable = true
+    }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 }
 
